@@ -41,15 +41,21 @@ void ping_loop() {
         icmp.icmp_seq = seq_sum++;
         gettimeofday(&send_time, NULL);
         memcpy(icmp.icmp_data, &send_time, sizeof(struct timeval));
-        if (seq_sum == 2)
-            printf("PING %s (%s) %d(%d) bytes of data.\n", g_ping.target, g_ping.ip, PACKET_SIZE, total_packet_size);
         icmp.icmp_cksum = checksum((unsigned short *)&icmp, sizeof(icmp));
+        if (g_ping.v_option == 1 && seq_sum == 2) {
+            printf("PING %s (%s) %d(%d) bytes of data, id 0x%0x = %d.\n", g_ping.target, g_ping.ip, PACKET_SIZE, total_packet_size, icmp.icmp_id, icmp.icmp_id);
+
+        }
+
+        else if (seq_sum == 2 && g_ping.v_option == 0) 
+            printf("PING %s (%s) %d(%d) bytes of data.\n", g_ping.target, g_ping.ip, PACKET_SIZE, total_packet_size);
         iov.iov_base = packet; iov.iov_len = total_packet_size;
         msg.msg_iov = &iov; msg.msg_iovlen = 1;
 
         if (sendto(g_ping.sockfd, &icmp, sizeof(icmp), 0, (struct sockaddr *)g_ping.res, sizeof(struct sockaddr)) < 0) {
             perror("sendto");
             if (g_ping.v_option == 0) { close(g_ping.sockfd); exit(1); }
+
         }
         g_ping.seq++;
         int nbytes = recvmsg(g_ping.sockfd, &msg, 0);
@@ -58,19 +64,22 @@ void ping_loop() {
             else perror("recvfrom");
             continue;
         }
-
+        
         gettimeofday(&recv_time, NULL);
         struct ip *ip = (struct ip *)packet;
         struct icmp *icmp_rec = (struct icmp *)(packet + (ip->ip_hl << 2));
         struct timeval *out = (struct timeval *)(icmp_rec->icmp_data);
-        double latency = (double)(recv_time.tv_sec - out->tv_sec) * 1000.0 + (double)(recv_time.tv_usec - out->tv_usec) / 1000.0;
+        double latency = (double)(recv_time.tv_sec - out->tv_sec) * 1000 + (double)(recv_time.tv_usec - out->tv_usec) / 1000;
         printf("%ld bytes from %s: icmp_seq=%d ttl=%d time=%.2f ms\n", PACKET_SIZE + sizeof(struct icmphdr), g_ping.ip, icmp.icmp_seq, ip->ip_ttl, latency);
 
         g_ping.total_time += latency;
-        if (g_ping.received == 0 || latency < g_ping.min_rtt) g_ping.min_rtt = latency;
-        if (g_ping.received == 0 || latency > g_ping.max_rtt) g_ping.max_rtt = latency;
+        if (g_ping.received == 0 || latency < g_ping.min_rtt)
+             g_ping.min_rtt = latency;
+        if (g_ping.received == 0 || latency > g_ping.max_rtt)
+             g_ping.max_rtt = latency;
         g_ping.sum_rtt += latency;
-        if (g_ping.received < MAX_LATENCIES) g_ping.latencies[g_ping.received] = latency;
+        if (g_ping.received < LATENCY)
+            g_ping.latencies[g_ping.received] = latency;
         g_ping.received++;
 
         if (g_ping.received > 1) {
@@ -80,7 +89,8 @@ void ping_loop() {
                 squared_diff_sum += (g_ping.latencies[i] - mean) * (g_ping.latencies[i] - mean);
             g_ping.mdev_rtt = squared_diff_sum / g_ping.received;
         }
-        usleep(100000);
+        usleep(1000000);
     }
 }
+
 
