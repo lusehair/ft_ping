@@ -17,7 +17,7 @@
 # include <stddef.h>
 
 # define PACKET_SIZE 56
-# define MAX_LATENCIES 10
+# define LATENCY 10
 
 
 typedef struct s_ping {
@@ -37,7 +37,7 @@ typedef struct s_ping {
 	double	min_rtt, max_rtt, sum_rtt, mdev_rtt;
 	long	total_time;
 
-	double latencies[MAX_LATENCIES];
+	double latencies[LATENCY];
 }			t_ping;
 
 void	init_socket();
