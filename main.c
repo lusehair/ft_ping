@@ -5,21 +5,25 @@ t_ping g_ping;
 
 void parse_hostname(char *target) {
     struct addrinfo hints = { .ai_family = AF_UNSPEC, .ai_socktype = SOCK_STREAM }, *res;
-    if (getaddrinfo(target, NULL, &hints, &res) != 0) {
-		printf("ping: %s: Name or service not known\n", target);
-		exit(1);
+    int status = 0;
+    status = getaddrinfo(target, NULL, &hints, &res);
+    if (status != 0) {
+            printf("ping: unknown host\n");
+        exit(1);
 	}
+
+
     g_ping.res = (struct sockaddr_in *)res->ai_addr;
     inet_ntop(res->ai_family, &g_ping.res->sin_addr, g_ping.ip, sizeof(g_ping.ip));
     freeaddrinfo(res);
 }
 
 
-void sigint_handler(int signo) {
+void handler(int signo) {
     if (signo == SIGINT) {
         printf("\n--- %s ping statistics ---\n", g_ping.target);
-        printf("%d packets transmitted, %d received, %d%% packet loss, time %ldms\n", g_ping.seq, g_ping.received, (int)((float)(g_ping.seq - g_ping.received) / g_ping.seq) * 100, g_ping.total_time);
-        printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", g_ping.min_rtt, g_ping.sum_rtt / g_ping.received, g_ping.max_rtt, g_ping.mdev_rtt);
+        printf("%d packets transmitted, %d received, %d%% packet loss\n", g_ping.seq, g_ping.received, (int)((float)(g_ping.seq - g_ping.received) / g_ping.seq) * 100);
+        printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", g_ping.min_rtt, g_ping.sum_rtt / g_ping.received, g_ping.max_rtt, g_ping.mdev_rtt * 10);
         close(g_ping.sockfd);
         exit(0);
     }
@@ -33,7 +37,9 @@ void init_socket() {
     g_ping.timeout = 1;
     struct timeval tv = { .tv_sec = 1, .tv_usec = 0 };
     if (setsockopt(g_ping.sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-		perror("setsockopt");
+           
+		
+        perror("setsockopt");
 		exit(1); 
 	}
     ping_loop();
@@ -69,7 +75,7 @@ int main(int ac, char **av) {
             parse_hostname(arg);
         }
     }
-    signal(SIGINT, sigint_handler);
+    signal(SIGINT, handler);
     init_socket();
     return 0;
 }
