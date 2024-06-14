@@ -1,6 +1,6 @@
 NAME = ft_ping
 CC = gcc
-CFLAGS = -Wall -Werror -Wextra
+CFLAGS = -Wall -Werror -Wextra -fsanitize=address -g3
 SRC = main.c socket.c
 OBJ = $(SRC:.c=.o)
 INC = inc
