@@ -64,11 +64,13 @@ int main(int ac, char **av) {
 					return 1;
 				}
                 else if (arg[j] == 'v') 
+                {
 					g_ping.v_option = 1;
-                else { 
-					printf("ping: option requires an argument -- '%c'\n", arg[j]);
-					printf("Usage: ping [-hv] destination\n"); return 1; 
-				}
+                    if (ac == 2 && g_ping.v_option == 1) { 
+                        printf("ping: option requires an argument -- '%c'\n", arg[j]);
+                        printf("Usage: ping [-hv] destination\n"); return 1; 
+                    }
+                }
             }
         } else {
             snprintf(g_ping.target, sizeof(g_ping.target), "%s", arg);
